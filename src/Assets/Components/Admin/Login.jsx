@@ -1,7 +1,7 @@
 import axios from "axios";
 import { useState } from "react";
 import { baseURL } from "../../Utils/baseURL";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import Cookies from "js-cookie";
 
 const FloatingIcon = ({ icon, style }) => (
@@ -28,6 +28,32 @@ const FloatingIcon = ({ icon, style }) => (
     </div>
 );
 
+/* ── Smooth multi-dot loader ── */
+const ButtonLoader = () => (
+    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "12px" }}>
+        <span style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+            {[0, 1, 2].map(i => (
+                <span
+                    key={i}
+                    style={{
+                        display: "inline-block",
+                        width: "7px",
+                        height: "7px",
+                        borderRadius: "50%",
+                        background: "white",
+                        animation: "dotBounce 1.1s ease-in-out infinite",
+                        animationDelay: `${i * 0.18}s`,
+                        opacity: 0.9,
+                    }}
+                />
+            ))}
+        </span>
+        <span style={{ fontFamily: "'Sora', sans-serif", fontSize: "15px", fontWeight: "600", letterSpacing: "0.3px" }}>
+            Signing in…
+        </span>
+    </span>
+);
+
 const Login = () => {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
@@ -35,31 +61,33 @@ const Login = () => {
     const [remember, setRemember] = useState(false);
     const [loading, setLoading] = useState(false);
     const [focused, setFocused] = useState(null);
-    const navigate = useNavigate()
+    const navigate = useNavigate();
 
     const handleLogin = () => {
+        if (loading) return;
         setLoading(true);
         axios({
             url: `${baseURL}/api/v1/user/login`,
             method: "POST",
             data: { username, password },
-            headers: {
-                "Content-Type": "application/json"
-            }
-        }).then((res) => {
-            setTimeout(() => setLoading(false), 1800);
-            if (res.status === 200) {
-                Cookies.set("accessToken", res.data.data.accessToken);
-                localStorage.setItem("user", JSON.stringify(res.data.data.accessToken));
-                navigate("/admin")
-            }
-        }).catch((err) => {
-            setTimeout(() => setLoading(false), 500);
-            const message = err.response?.data?.message;
-            const code = err?.response?.status
-            setLoading(false)
-            alert(`${message}:${code}`)
+            headers: { "Content-Type": "application/json" },
         })
+            .then((res) => {
+                if (res.status === 200) {
+                    Cookies.set("accessToken", res.data.data.accessToken);
+                    localStorage.setItem("user", JSON.stringify(res.data.data.accessToken));
+                    setTimeout(() => {
+                        setLoading(false);
+                        navigate("/admin");
+                    }, 800);
+                }
+            })
+            .catch((err) => {
+                setLoading(false);
+                const message = err.response?.data?.message;
+                const code = err?.response?.status;
+                alert(`${message}: ${code}`);
+            });
     };
 
     return (
@@ -92,8 +120,13 @@ const Login = () => {
           0%, 100% { transform: translate(0, 0) scale(1); }
           50% { transform: translate(-20px, 15px) scale(1.04); }
         }
-        @keyframes spin {
-          to { transform: rotate(360deg); }
+        @keyframes dotBounce {
+          0%, 80%, 100% { transform: translateY(0); opacity: 0.6; }
+          40%           { transform: translateY(-6px); opacity: 1; }
+        }
+        @keyframes btnPulse {
+          0%, 100% { box-shadow: 0 4px 20px rgba(37,99,235,0.35); }
+          50%       { box-shadow: 0 6px 32px rgba(37,99,235,0.55); }
         }
         .login-card {
           animation: fadeSlideUp 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -107,16 +140,34 @@ const Login = () => {
           box-shadow: 0 0 0 3px rgba(37,99,235,0.13);
         }
         .login-btn {
-          transition: background 0.18s, transform 0.12s, box-shadow 0.18s;
+          transition: background 0.18s, transform 0.12s, box-shadow 0.18s, opacity 0.18s;
           cursor: pointer;
+          position: relative;
+          overflow: hidden;
         }
         .login-btn:hover:not(:disabled) {
-          background: #1d4ed8 !important;
-          box-shadow: 0 8px 28px rgba(37,99,235,0.38) !important;
+          background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%) !important;
+          box-shadow: 0 8px 28px rgba(37,99,235,0.42) !important;
           transform: translateY(-1px);
         }
         .login-btn:active:not(:disabled) {
-          transform: translateY(0);
+          transform: translateY(0) scale(0.98);
+        }
+        .login-btn:disabled {
+          cursor: not-allowed;
+          animation: btnPulse 1.8s ease-in-out infinite;
+        }
+        /* ripple on click */
+        .login-btn::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: rgba(255,255,255,0);
+          transition: background 0.3s;
+          border-radius: inherit;
+        }
+        .login-btn:active::after {
+          background: rgba(255,255,255,0.12);
         }
         .eye-btn {
           transition: color 0.15s;
@@ -259,14 +310,16 @@ const Login = () => {
                             placeholder="Enter your username"
                             value={username}
                             onChange={e => setUsername(e.target.value)}
+                            disabled={loading}
                             style={{
                                 width: "100%", padding: "11px 14px 11px 36px",
                                 fontSize: "14px", color: "#0f172a",
-                                background: "#f8fafc",
+                                background: loading ? "#f1f5f9" : "#f8fafc",
                                 border: `1.5px solid ${focused === "username" ? "#2563eb" : "#e2e8f0"}`,
                                 borderRadius: "10px",
                                 boxSizing: "border-box",
                                 fontFamily: "inherit",
+                                transition: "background 0.2s",
                             }}
                             onFocus={() => setFocused("username")}
                             onBlur={() => setFocused(null)}
@@ -293,14 +346,16 @@ const Login = () => {
                             placeholder="Enter your password"
                             value={password}
                             onChange={e => setPassword(e.target.value)}
+                            disabled={loading}
                             style={{
                                 width: "100%", padding: "11px 42px 11px 36px",
                                 fontSize: "14px", color: "#0f172a",
-                                background: "#f8fafc",
+                                background: loading ? "#f1f5f9" : "#f8fafc",
                                 border: `1.5px solid ${focused === "password" ? "#2563eb" : "#e2e8f0"}`,
                                 borderRadius: "10px",
                                 boxSizing: "border-box",
                                 fontFamily: "inherit",
+                                transition: "background 0.2s",
                             }}
                             onFocus={() => setFocused("password")}
                             onBlur={() => setFocused(null)}
@@ -324,7 +379,7 @@ const Login = () => {
                         </div>
                         <span style={{ fontSize: "13.5px", color: "#475569", fontWeight: "500" }}>Remember Me</span>
                     </label>
-                    <a className="link" href="#" style={{ fontSize: "13.5px" }}>Forgot Password?</a>
+                    <Link className="link" to="#" style={{ fontSize: "13.5px" }}>Forgot Password?</Link>
                 </div>
 
                 {/* Login Button */}
@@ -333,32 +388,31 @@ const Login = () => {
                     onClick={handleLogin}
                     disabled={loading}
                     style={{
-                        width: "100%", padding: "13px",
-                        background: loading ? "#93c5fd" : "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
-                        color: "white", border: "none",
-                        borderRadius: "12px", fontSize: "15px", fontWeight: "600",
-                        fontFamily: "'Sora', sans-serif", letterSpacing: "0.2px",
+                        width: "100%",
+                        padding: "13px",
+                        background: loading
+                            ? "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)"
+                            : "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "12px",
+                        fontSize: "15px",
+                        fontWeight: "600",
+                        fontFamily: "'Sora', sans-serif",
+                        letterSpacing: "0.2px",
                         boxShadow: "0 4px 20px rgba(37,99,235,0.3)",
                         marginBottom: "24px",
+                        opacity: loading ? 0.88 : 1,
                     }}
                 >
-                    {loading ? (
-                        <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px" }}>
-                            <span style={{
-                                display: "inline-block", width: "16px", height: "16px",
-                                border: "2px solid rgba(255,255,255,0.4)", borderTopColor: "white",
-                                borderRadius: "50%", animation: "spin 0.7s linear infinite",
-                            }} />
-                            Signing in…
-                        </span>
-                    ) : "Log In"}
+                    {loading ? <ButtonLoader /> : "Log In"}
                 </button>
 
                 {/* Footer links */}
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "10px", marginBottom: "14px" }}>
-                    <a className="link" style={{ fontSize: "12.5px", color: "#64748b", fontWeight: "400" }}>Privacy Policy</a>
+                    <Link className="link" to="#" style={{ fontSize: "12.5px", color: "#64748b", fontWeight: "400" }}>Privacy Policy</Link>
                     <span style={{ color: "#cbd5e1" }}>|</span>
-                    <a className="link" style={{ fontSize: "12.5px", color: "#64748b", fontWeight: "400" }}>Terms of Service</a>
+                    <Link className="link" to="#" style={{ fontSize: "12.5px", color: "#64748b", fontWeight: "400" }}>Terms of Service</Link>
                     <span style={{ color: "#cbd5e1" }}>|</span>
                     <span style={{ fontSize: "16px" }}>👥</span>
                 </div>
@@ -368,6 +422,6 @@ const Login = () => {
             </div>
         </div>
     );
-}
+};
 
 export default Login;

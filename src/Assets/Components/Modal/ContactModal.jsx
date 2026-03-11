@@ -16,7 +16,8 @@ const ContactModal = ({ show, onClose, onSave }) => {
         phone: "",
         profileURL: "",
         company: "",
-        source: ""
+        source: "",
+        designation: ""
     });
 
     const [loading, setLoading] = useState(false);
@@ -46,21 +47,26 @@ const ContactModal = ({ show, onClose, onSave }) => {
                 "Content-Type": "application/json",
                 "Authorization": `Bearer ${localStorage.getItem("user")}`
             }
-        }).then((res) => {
+        })
+        .then((res) => {
             if (res.status === 200) {
                 alert("Contact added successfully!");
+
                 setFormData({
                     name: "",
                     email: "",
                     phone: "",
                     profileURL: "",
                     company: "",
-                    source: ""
+                    source: "",
+                    designation: ""
                 });
+
                 setLoading(false);
                 onClose();
             }
-        }).catch((err) => {
+        })
+        .catch((err) => {
             const message = err.response?.data?.message;
             const code = err?.response?.status;
             setLoading(false);
@@ -69,12 +75,7 @@ const ContactModal = ({ show, onClose, onSave }) => {
     };
 
     return (
-        <Modal
-            show={show}
-            onHide={onClose}
-            centered
-            size="lg"
-        >
+        <Modal show={show} onHide={onClose} centered size="lg">
             <Modal.Header closeButton>
                 <Modal.Title>Add New Contact</Modal.Title>
             </Modal.Header>
@@ -82,6 +83,7 @@ const ContactModal = ({ show, onClose, onSave }) => {
             <Modal.Body>
                 <Form onSubmit={handleSubmit}>
 
+                    {/* Full Name | Phone */}
                     <Row>
                         <Col md={6}>
                             <Form.Group className="mb-3">
@@ -110,6 +112,7 @@ const ContactModal = ({ show, onClose, onSave }) => {
                         </Col>
                     </Row>
 
+                    {/* Email | Designation */}
                     <Row>
                         <Col md={6}>
                             <Form.Group className="mb-3">
@@ -126,6 +129,22 @@ const ContactModal = ({ show, onClose, onSave }) => {
 
                         <Col md={6}>
                             <Form.Group className="mb-3">
+                                <Form.Label>Designation</Form.Label>
+                                <Form.Control
+                                    type="text"
+                                    name="designation"
+                                    placeholder="Owner / Founder"
+                                    value={formData.designation}
+                                    onChange={handleChange}
+                                />
+                            </Form.Group>
+                        </Col>
+                    </Row>
+
+                    {/* Company | Profile URL */}
+                    <Row>
+                        <Col md={6}>
+                            <Form.Group className="mb-3">
                                 <Form.Label>Company</Form.Label>
                                 <Form.Control
                                     type="text"
@@ -136,9 +155,7 @@ const ContactModal = ({ show, onClose, onSave }) => {
                                 />
                             </Form.Group>
                         </Col>
-                    </Row>
 
-                    <Row>
                         <Col md={6}>
                             <Form.Group className="mb-3">
                                 <Form.Label>Profile URL</Form.Label>
@@ -151,7 +168,10 @@ const ContactModal = ({ show, onClose, onSave }) => {
                                 />
                             </Form.Group>
                         </Col>
+                    </Row>
 
+                    {/* Source */}
+                    <Row>
                         <Col md={6}>
                             <Form.Group className="mb-3">
                                 <Form.Label>Source</Form.Label>

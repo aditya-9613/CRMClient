@@ -42,6 +42,7 @@ const Table = ({ filteredContacts, selectedContact, setSelectedContact, Avatar, 
 
     const headers = [
         { label: "Name", key: "name", sortable: true },
+        { label: "Designation", key: "designation", sortable: false },
         { label: "Phone", key: "phone", sortable: false },
         { label: "Email", key: "email", sortable: false },
         { label: "Company", key: "company", sortable: false },
@@ -91,6 +92,9 @@ const Table = ({ filteredContacts, selectedContact, setSelectedContact, Avatar, 
                                         <Avatar initials={getInitials(c.name)} index={i} />
                                         <span style={{ color: "#2563eb", fontWeight: 600, fontSize: 14 }}>{c.name}</span>
                                     </div>
+                                </td>
+                                <td style={{ padding: "12px", fontSize: 13, color: "#475569", borderBottom: "1px solid #f1f5f9" }}>
+                                     {c.designation || "—"}
                                 </td>
                                 <td style={{ padding: "12px", fontSize: 13, color: "#475569", borderBottom: "1px solid #f1f5f9" }}>
                                     📱 {c.phone || "—"}

@@ -34,9 +34,7 @@ const EditModal = ({ isOpen, onClose, uid }) => {
                     setContact(res.data.data.contacts);
                 }
             })
-            .catch(() => {
-                setContact(null);
-            })
+            .catch(() => setContact(null))
             .finally(() => setLoading(false));
 
     }, [uid]);
@@ -50,29 +48,40 @@ const EditModal = ({ isOpen, onClose, uid }) => {
         }));
     };
 
-    // Format Date -> DD/MM/YYYY HH:MM
     const formatDate = (date) => {
-
         const d = new Date(date);
 
         const day = String(d.getDate()).padStart(2, "0");
         const month = String(d.getMonth() + 1).padStart(2, "0");
         const year = d.getFullYear();
 
-        const hours = String(d.getHours()).padStart(2, "0");
-        const minutes = String(d.getMinutes()).padStart(2, "0");
+        const istTime = d.toLocaleTimeString("en-IN", {
+            timeZone: "Asia/Kolkata",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true
+        }).toUpperCase();
 
-        return `${day}/${month}/${year} ${hours}:${minutes}`;
+        const pstTime = d.toLocaleTimeString("en-US", {
+            timeZone: "America/Los_Angeles",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true
+        }).toUpperCase()
+
+        return `${day}/${month}/${year} | IST: ${istTime} | PST: ${pstTime}`;
     };
 
-    // Function called when update button is clicked
     const updateContact = () => {
+
         setLoading(true);
+
         const data = {
             uid: contact.uid,
             name: contact.name,
             phone: contact.phone,
             email: contact.email,
+            designation: contact.designation,
             company: contact.company,
             profileURL: contact.profileURL,
             source: contact.source,
@@ -92,16 +101,15 @@ const EditModal = ({ isOpen, onClose, uid }) => {
             .then((res) => {
                 if (res.status === 200) {
                     alert("Contact updated successfully!");
-                    setLoading(false);
                     onClose();
                 }
             })
             .catch((err) => {
                 const message = err.response?.data?.message;
                 const code = err?.response?.status;
-                setLoading(false);
                 alert(`${message}:${code}`);
-            });
+            })
+            .finally(() => setLoading(false));
     };
 
     if (loading || !contact) {
@@ -125,8 +133,8 @@ const EditModal = ({ isOpen, onClose, uid }) => {
 
                 <Form>
 
+                    {/* Name | Phone */}
                     <Row className="mb-3">
-
                         <Col>
                             <Form.Label>Name</Form.Label>
                             <Form.Control
@@ -144,11 +152,10 @@ const EditModal = ({ isOpen, onClose, uid }) => {
                                 onChange={handleChange}
                             />
                         </Col>
-
                     </Row>
 
+                    {/* Email | Designation */}
                     <Row className="mb-3">
-
                         <Col>
                             <Form.Label>Email</Form.Label>
                             <Form.Control
@@ -159,6 +166,18 @@ const EditModal = ({ isOpen, onClose, uid }) => {
                         </Col>
 
                         <Col>
+                            <Form.Label>Designation</Form.Label>
+                            <Form.Control
+                                name="designation"
+                                value={contact.designation || ""}
+                                onChange={handleChange}
+                            />
+                        </Col>
+                    </Row>
+
+                    {/* Company | Profile URL */}
+                    <Row className="mb-3">
+                        <Col>
                             <Form.Label>Company</Form.Label>
                             <Form.Control
                                 name="company"
@@ -166,10 +185,6 @@ const EditModal = ({ isOpen, onClose, uid }) => {
                                 onChange={handleChange}
                             />
                         </Col>
-
-                    </Row>
-
-                    <Row className="mb-3">
 
                         <Col>
                             <Form.Label>Profile URL</Form.Label>
@@ -179,7 +194,10 @@ const EditModal = ({ isOpen, onClose, uid }) => {
                                 onChange={handleChange}
                             />
                         </Col>
+                    </Row>
 
+                    {/* Source | Status */}
+                    <Row className="mb-3">
                         <Col>
                             <Form.Label>Source</Form.Label>
                             <Form.Control
@@ -189,21 +207,7 @@ const EditModal = ({ isOpen, onClose, uid }) => {
                             />
                         </Col>
 
-                    </Row>
-
-                    <Row className="mb-3">
-
                         <Col>
-                            <Form.Label>Message</Form.Label>
-                            <Form.Control
-                                placeholder="Message For Changing the Status"
-                                value={message}
-                                onChange={(e) => setMessage(e.target.value)}
-                            />
-                        </Col>
-
-                        <Col>
-
                             <Form.Label>Status</Form.Label>
 
                             <Form.Select
@@ -211,7 +215,6 @@ const EditModal = ({ isOpen, onClose, uid }) => {
                                 value={contact.status || ""}
                                 onChange={handleChange}
                             >
-
                                 <option value="New">New</option>
                                 <option value="Connected">Connected</option>
                                 <option value="Pending">Pending</option>
@@ -219,11 +222,20 @@ const EditModal = ({ isOpen, onClose, uid }) => {
                                 <option value="Completed">Completed</option>
                                 <option value="Rejected">Rejected</option>
                                 <option value="Archived">Archived</option>
-
                             </Form.Select>
-
                         </Col>
+                    </Row>
 
+                    {/* Message */}
+                    <Row className="mb-3">
+                        <Col md={6}>
+                            <Form.Label>Message</Form.Label>
+                            <Form.Control
+                                placeholder="Message For Changing the Status"
+                                value={message}
+                                onChange={(e) => setMessage(e.target.value)}
+                            />
+                        </Col>
                     </Row>
 
                 </Form>
@@ -233,9 +245,7 @@ const EditModal = ({ isOpen, onClose, uid }) => {
                 <h5>Activities</h5>
 
                 {contact.activities ? (
-
                     <Table bordered hover>
-
                         <thead>
                             <tr>
                                 <th>S.No.</th>
@@ -247,35 +257,24 @@ const EditModal = ({ isOpen, onClose, uid }) => {
                         </thead>
 
                         <tbody>
-
                             {contact.activities.activity?.map((act, index) => (
-
                                 <tr key={index}>
                                     <td>{index + 1}</td>
                                     <td>{act}</td>
                                     <td>{contact.activities.message?.[index]}</td>
                                     <td>{contact.activities.status?.[index]}</td>
-                                    <td>
-                                        {formatDate(contact.activities.dates?.[index])}
-                                    </td>
+                                    <td>{formatDate(contact.activities.dates?.[index])}</td>
                                 </tr>
-
                             ))}
-
                         </tbody>
-
                     </Table>
-
                 ) : (
-
                     <p>No activities found</p>
-
                 )}
 
             </Modal.Body>
 
             <Modal.Footer>
-
                 <Button variant="secondary" onClick={onClose}>
                     Close
                 </Button>
@@ -283,7 +282,6 @@ const EditModal = ({ isOpen, onClose, uid }) => {
                 <Button variant="primary" onClick={updateContact}>
                     Update Contact
                 </Button>
-
             </Modal.Footer>
 
         </Modal>
