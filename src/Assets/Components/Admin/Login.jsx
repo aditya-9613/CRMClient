@@ -75,11 +75,11 @@ const Login = () => {
             .then((res) => {
                 if (res.status === 200) {
                     Cookies.set("accessToken", res.data.data.accessToken);
-                    localStorage.setItem("user", JSON.stringify(res.data.data.accessToken));
+                    localStorage.setItem("user", (res.data.data.accessToken));
                     setTimeout(() => {
                         setLoading(false);
                         navigate("/admin");
-                    }, 800);
+                    }, 500);
                 }
             })
             .catch((err) => {
