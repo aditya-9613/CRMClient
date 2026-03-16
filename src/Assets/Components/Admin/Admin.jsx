@@ -1,18 +1,13 @@
 import { useEffect, useState, useRef } from "react";
-import ContactModal from "../Modal/ContactModal";
+import Navbar from "../Navbar/Navbar";
 import Table from "../Table/Table";
 import axios from "axios";
 import { baseURL } from "../../Utils/baseURL";
-import { useNavigate } from "react-router-dom";
-import Form from 'react-bootstrap/Form'
+import Form from 'react-bootstrap/Form';
 
 const Admin = () => {
     const [contacts, setContacts] = useState([]);
     const [activities, setActivities] = useState([]);
-    const [userMenuOpen, setUserMenuOpen] = useState(false);
-    const [loggingOut, setLoggingOut] = useState(false);
-    const navigate = useNavigate();
-    const userMenuRef = useRef(null);
 
     // --- Filter state ---
     const [filterOpen, setFilterOpen] = useState(false);
@@ -24,9 +19,6 @@ const Admin = () => {
 
     useEffect(() => {
         const handleClickOutside = (e) => {
-            if (userMenuRef.current && !userMenuRef.current.contains(e.target)) {
-                setUserMenuOpen(false);
-            }
             if (filterRef.current && !filterRef.current.contains(e.target)) {
                 setFilterOpen(false);
             }
@@ -34,33 +26,6 @@ const Admin = () => {
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
-
-    const handleLogout = () => {
-        if (loggingOut) return;
-        setLoggingOut(true);
-        setUserMenuOpen(false);
-        axios({
-            url: `${baseURL}/api/v1/user/logout`,
-            method: "POST",
-            withCredentials: true,
-            headers: { Authorization: `Bearer ${localStorage.getItem("user")}` },
-        })
-            .then((res) => {
-                if (res.status === 200) {
-                    localStorage.removeItem("user");
-                    setTimeout(() => {
-                        setLoggingOut(false);
-                        navigate("/");
-                    }, 600);
-                }
-            })
-            .catch((err) => {
-                setLoggingOut(false);
-                const message = err.response?.data?.message;
-                const code = err?.response?.status;
-                alert(`${message}:${code}`);
-            });
-    };
 
     const fetchContacts = () => {
         axios({
@@ -94,12 +59,9 @@ const Admin = () => {
 
     const [selectedContact, setSelectedContact] = useState(null);
     const [activeTab, setActiveTab] = useState("All Contacts");
-    const [activeNav, setActiveNav] = useState("Dashboard");
     const [search, setSearch] = useState("");
-    const [isContactModalOpen, setIsContactModalOpen] = useState(false);
 
     const tabs = ["All Contacts", "New", "Connected", "Pending", "In Progress", "Completed", "Rejected", "Archived"];
-    const navItems = ["Dashboard", "Contacts", "Import", "Reports"];
     const avatarColors = ["#3b82f6", "#8b5cf6", "#ec4899", "#14b8a6", "#f59e0b"];
 
     const statusColors = {
@@ -145,7 +107,6 @@ const Admin = () => {
         );
     }
 
-    // Apply search + date range filter
     const isDateInRange = (isoStr) => {
         if (!appliedFrom && !appliedTo) return true;
         if (!isoStr) return false;
@@ -170,9 +131,7 @@ const Admin = () => {
             (c.phone || "").includes(search) ||
             (c.email || "").toLowerCase().includes(search.toLowerCase()) ||
             (c.company || "").toLowerCase().includes(search.toLowerCase());
-
         const matchesDate = isDateInRange(c.createdAt);
-
         return matchesSearch && matchesDate;
     });
 
@@ -192,161 +151,30 @@ const Admin = () => {
 
     const isFilterActive = appliedFrom || appliedTo;
 
-    const menuItem = { padding: "10px 14px", cursor: "pointer", borderBottom: "1px solid #f1f5f9" };
-
-    const refreshFn = async () => {
-        window.location.reload();
-    };
+    const refreshFn = () => window.location.reload();
 
     return (
         <div style={{ fontFamily: "'DM Sans', 'Segoe UI', sans-serif", background: "#f1f5f9", minHeight: "100vh", color: "#1e293b" }}>
 
             <style>{`
-                @keyframes spinDot {
-                    to { transform: rotate(360deg); }
-                }
-                @keyframes logoutDotBounce {
-                    0%, 80%, 100% { transform: translateY(0); opacity: 0.5; }
-                    40%           { transform: translateY(-4px); opacity: 1; }
-                }
-                @keyframes fadeOverlay {
-                    from { opacity: 0; }
-                    to   { opacity: 1; }
-                }
-                @keyframes dropdownFade {
-                    from { opacity: 0; transform: translateY(-6px); }
-                    to   { opacity: 1; transform: translateY(0); }
-                }
                 .filter-input:focus {
                     outline: none;
                     border-color: #2563eb !important;
                     box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
                 }
-                .filter-apply-btn:hover {
-                    background: #1d4ed8 !important;
-                }
-                .filter-clear-btn:hover {
-                    background: #f1f5f9 !important;
+                .filter-apply-btn:hover { background: #1d4ed8 !important; }
+                .filter-clear-btn:hover { background: #f1f5f9 !important; }
+                @keyframes dropdownFade {
+                    from { opacity: 0; transform: translateY(-6px); }
+                    to   { opacity: 1; transform: translateY(0); }
                 }
             `}</style>
 
-            {/* Full-screen logout overlay */}
-            {loggingOut && (
-                <div style={{
-                    position: "fixed", inset: 0, zIndex: 99999,
-                    background: "rgba(255,255,255,0.75)",
-                    backdropFilter: "blur(6px)",
-                    display: "flex", flexDirection: "column",
-                    alignItems: "center", justifyContent: "center", gap: 16,
-                    animation: "fadeOverlay 0.25s ease both",
-                }}>
-                    <div style={{
-                        width: 52, height: 52, borderRadius: "50%",
-                        border: "4px solid #e2e8f0",
-                        borderTopColor: "#2563eb",
-                        animation: "spinDot 0.75s linear infinite",
-                    }} />
-                    <span style={{ fontSize: 15, fontWeight: 600, color: "#1e293b", letterSpacing: "0.2px" }}>
-                        Logging out…
-                    </span>
-                </div>
-            )}
-
             {/* Navbar */}
-            <nav style={{ background: "#fff", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", padding: "0 24px", height: 56, gap: 8 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 10, background: "#2563eb", color: "#fff", borderRadius: 8, padding: "6px 14px", fontWeight: 700, fontSize: 15, marginRight: 24 }}>
-                    <span style={{ fontSize: 18 }}>👥</span> CRM
-                </div>
-
-                {navItems.map((item) => (
-                    <button key={item} onClick={() => setActiveNav(item)} style={{
-                        background: "none", border: "none", cursor: "pointer", padding: "6px 14px",
-                        fontWeight: activeNav === item ? 700 : 500,
-                        color: activeNav === item ? "#2563eb" : "#64748b",
-                        borderBottom: activeNav === item ? "2px solid #2563eb" : "2px solid transparent",
-                        fontSize: 14, transition: "all 0.15s",
-                    }}>
-                        {item}
-                    </button>
-                ))}
-
-                <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 12 }}>
-                    <span style={{ fontSize: 20, cursor: "pointer" }}>🔔</span>
-
-                    <button
-                        onClick={() => setIsContactModalOpen(true)}
-                        style={{ background: "#2563eb", color: "#fff", border: "none", borderRadius: 8, padding: "8px 18px", fontWeight: 600, fontSize: 14, cursor: "pointer" }}
-                    >
-                        + Add Contact
-                    </button>
-
-                    <div ref={userMenuRef} style={{ position: "relative", zIndex: 1000 }}>
-                        <div
-                            onClick={() => setUserMenuOpen(!userMenuOpen)}
-                            style={{
-                                width: 36, height: 36, borderRadius: "50%",
-                                background: "#2563eb", color: "#fff",
-                                display: "flex", alignItems: "center", justifyContent: "center",
-                                fontWeight: 700, cursor: "pointer", userSelect: "none",
-                            }}
-                        >
-                            U
-                        </div>
-
-                        {userMenuOpen && (
-                            <div style={{
-                                position: "absolute", top: 44, right: 0, width: 180,
-                                background: "#fff", borderRadius: 10,
-                                boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
-                                border: "1px solid #e2e8f0", overflow: "hidden",
-                                fontSize: 14, zIndex: 9999,
-                            }}>
-                                <div style={menuItem}>👤 Profile</div>
-                                <div style={menuItem}>🔑 Change Password</div>
-                                <div style={menuItem}>⚙️ Settings</div>
-                                <div
-                                    onClick={handleLogout}
-                                    style={{
-                                        ...menuItem,
-                                        borderBottom: "none",
-                                        color: loggingOut ? "#94a3b8" : "#ef4444",
-                                        display: "flex", alignItems: "center", gap: 8,
-                                        cursor: loggingOut ? "not-allowed" : "pointer",
-                                        pointerEvents: loggingOut ? "none" : "auto",
-                                        transition: "color 0.2s",
-                                    }}
-                                >
-                                    {loggingOut ? (
-                                        <>
-                                            <span style={{ display: "flex", gap: 3, alignItems: "center" }}>
-                                                {[0, 1, 2].map(i => (
-                                                    <span key={i} style={{
-                                                        width: 5, height: 5, borderRadius: "50%",
-                                                        background: "#94a3b8", display: "inline-block",
-                                                        animation: "logoutDotBounce 1s ease-in-out infinite",
-                                                        animationDelay: `${i * 0.16}s`,
-                                                    }} />
-                                                ))}
-                                            </span>
-                                            Logging out…
-                                        </>
-                                    ) : (
-                                        <>🚪 Logout</>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                <ContactModal
-                    show={isContactModalOpen}
-                    onClose={() => setIsContactModalOpen(false)}
-                    onContactAdded={fetchContacts}
-                />
-            </nav>
+            <Navbar onContactAdded={fetchContacts} />
 
             <div style={{ padding: "24px", display: "flex", flexDirection: "column", gap: 20 }}>
+
                 {/* Contact List */}
                 <div style={{ background: "#fff", borderRadius: 14, boxShadow: "0 1px 4px #0001", padding: 20 }}>
                     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
@@ -354,6 +182,8 @@ const Admin = () => {
                             Contact List <span style={{ fontSize: 14, color: "#94a3b8" }}>ℹ️</span>
                         </h2>
                         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+
+                            {/* Search */}
                             <div style={{ position: "relative" }}>
                                 <input
                                     value={search}
@@ -364,6 +194,7 @@ const Admin = () => {
                                 <span style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "#94a3b8", fontSize: 14 }}>🔍</span>
                             </div>
 
+                            {/* Refresh */}
                             <button
                                 style={{ border: "1px solid #e2e8f0", background: "#fff", borderRadius: 8, padding: "7px 12px", cursor: "pointer", fontSize: 16 }}
                                 onClick={refreshFn}
@@ -371,7 +202,7 @@ const Admin = () => {
                                 🔄
                             </button>
 
-                            {/* ── Filters button + dropdown ── */}
+                            {/* Filters button + dropdown */}
                             <div ref={filterRef} style={{ position: "relative" }}>
                                 <button
                                     onClick={() => setFilterOpen((v) => !v)}
@@ -616,6 +447,7 @@ const Admin = () => {
 
                 {/* Middle Row */}
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+
                     {/* Contact Details */}
                     <div style={{ background: "#fff", borderRadius: 14, boxShadow: "0 1px 4px #0001", padding: 20 }}>
                         <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 14 }}>
@@ -683,6 +515,7 @@ const Admin = () => {
 
                     {/* Right Column */}
                     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+
                         {/* Activity Timeline */}
                         <div style={{ background: "#fff", borderRadius: 14, boxShadow: "0 1px 4px #0001", padding: 20 }}>
                             <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 700 }}>Activity Timeline</h3>
